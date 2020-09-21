@@ -27,6 +27,14 @@ class Chess
     return mapped_connections
   end
 
+  def generate_pieces(player)
+    rook1 = Rook.new
+    space = @graph.detect { |space| space.coordinate == [1,1] } if player.color == 'black'
+    space = @graph.detect { |space| space.coordinate == [1,8] } if player.color == 'white'
+    space.chess_piece = rook1
+  
+  end
+
   def player_select(num)
     puts "\nPlayer #{num}, please type your name..."
     name = gets.chomp
@@ -45,22 +53,45 @@ class Space
 
   def initialize(coordinate)
     @coordinate = coordinate
-    @chess_piece = nil
+    @chess_piece = generate_piece(coordinate)
   end
 
+  def generate_piece(coordinate)
+    
+    return Rook.new(coordinate, 'black') if coordinate == [1,1]
+    return Rook.new(coordinate, 'white') if coordinate == [1,8]
+    return Knight.new(coordinate, 'black') if coordinate == [2,1]
+    return Knight.new(coordinate, 'white') if coordinate == [2,8]
+    return Bishop.new(coordinate, 'black') if coordinate == [3,1]
+    return Bishop.new(coordinate, 'white') if coordinate == [3,8]
+    return King.new(coordinate, 'black') if coordinate == [4,1]
+    return King.new(coordinate, 'white') if coordinate == [4,8]
+    return Queen.new(coordinate, 'black') if coordinate == [5,1]
+    return Queen.new(coordinate, 'white') if coordinate == [5,8]
+    return Bishop.new(coordinate, 'black') if coordinate == [6,1]
+    return Bishop.new(coordinate, 'white') if coordinate == [6,8]
+    return Knight.new(coordinate, 'black') if coordinate == [7,1]
+    return Knight.new(coordinate, 'white') if coordinate == [7,8]
+    return Rook.new(coordinate, 'black') if coordinate == [8,1]
+    return Rook.new(coordinate, 'white') if coordinate == [8,8]
+
+    for i in 1..8
+      return Pawn.new(coordinate, 'black') if coordinate == [i,2]
+      return Pawn.new(coordinate, 'white') if coordinate == [i,7]
+    end
+
+    return nil
+  
+  end
 end
 
 class Player
   attr_accessor :remaining_pieces, :name, :color
 
-  def initialize(name, color, graph)
-    @remaining_pieces = generate_pieces(graph)
+  def initialize(name, color)
     @name = name
     @color = color
-  end
-
-  def generate_pieces(graph)
-
+    @remaining_pieces = 16
   end
 
 end
@@ -85,8 +116,9 @@ class Knight
   include ChessPiece
   attr_accessor :position, :single_moves, :possible_moves
 
-  def initialize(position)
+  def initialize(position, color)
     @position = position
+    @color = color
     @single_moves = [
     [1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]
     ]
@@ -98,8 +130,9 @@ class Bishop
   include ChessPiece
   attr_accessor :position, :single_moves, :possible_moves
 
-  def initialize(position)
+  def initialize(position, color)
     @position = position
+    @color = color
     @single_moves = [
     [1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],
     [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8]
@@ -114,8 +147,9 @@ class Rook
   include ChessPiece
   attr_accessor :position, :single_moves, :possible_moves
 
-  def initialize(position)
+  def initialize(position, color)
     @position = position
+    @color = color
     @single_moves = [
     [0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],
     [1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
@@ -130,8 +164,9 @@ class Pawn
   include ChessPiece
   attr_accessor :position, :single_moves, :possible_moves
 
-  def initialize(position)
+  def initialize(position, color)
     @position = position
+    @color = color
     @single_moves = [0,1]
   end
 
@@ -141,8 +176,9 @@ class Queen
   include ChessPiece
   attr_accessor :position, :single_moves, :possible_moves
 
-  def initialize(position)
+  def initialize(position, color)
     @position = position
+    @color = color
     @single_moves = [
     [1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],
     [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8]
@@ -161,8 +197,9 @@ class King
   include ChessPiece
   attr_accessor :position, :single_moves, :possible_moves
 
-  def initialize(position)
+  def initialize(position, color)
     @position = position
+    @color = color
     @single_moves = [
     [1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1],[0,1]
     ]
@@ -173,6 +210,8 @@ end
 game = Chess.new()
 player1 = player_select('1')
 player2 = player_select('2')
+game.generate_pieces(player1)
+game.generate_pieces(player2)
 loop do
   game.round(player1)
     break if player2.remaining_pieces.length == 0
