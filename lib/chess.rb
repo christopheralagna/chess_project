@@ -42,11 +42,11 @@ class Chess
   def select_piece(player)
     puts "\nChoose which piece you'd like to move:"
     loop do
-      response = gets.chomp.split
+      response = gets.chomp.split('').map { |string| string.to_i }
       requested_space = @board.detect { |space| space.coordinate == response }
       if requested_space.chess_piece != nil
         if requested_space.chess_piece.color == player.color
-          return requested_space.chess_piece
+          return requested_space
         else
           puts "That's not your piece!"
         end
@@ -152,7 +152,7 @@ end
 
 class Knight
   include ChessPiece
-  attr_accessor :position, :single_moves, :possible_moves
+  attr_accessor :position, :color, :single_moves
 
   def initialize(position, color)
     @position = position
@@ -166,7 +166,7 @@ end
 
 class Bishop
   include ChessPiece
-  attr_accessor :position, :single_moves, :possible_moves
+  attr_accessor :position, :color, :single_moves
 
   def initialize(position, color)
     @position = position
@@ -190,7 +190,7 @@ end
 
 class Rook
   include ChessPiece
-  attr_accessor :position, :single_moves, :possible_moves
+  attr_accessor :position, :color, :single_moves
 
   def initialize(position, color)
     @position = position
@@ -207,7 +207,7 @@ end
 
 class Pawn
   include ChessPiece
-  attr_accessor :position, :single_moves, :possible_moves
+  attr_accessor :position, :color, :single_moves
 
   def initialize(position, color)
     @position = position
@@ -219,7 +219,7 @@ end
 
 class Queen
   include ChessPiece
-  attr_accessor :position, :single_moves, :possible_moves
+  attr_accessor :position, :color, :single_moves
 
   def initialize(position, color)
     @position = position
@@ -240,7 +240,7 @@ end
 
 class King
   include ChessPiece
-  attr_accessor :position, :single_moves, :possible_moves
+  attr_accessor :position, :color, :single_moves
 
   def initialize(position, color)
     @position = position
