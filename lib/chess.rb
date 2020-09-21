@@ -2,11 +2,11 @@
 require 'pry'
 
 class Chess
-  attr_accessor :coordinates, :graph
+  attr_accessor :coordinates, :board
 
   def initialize()
     @coordinates = create_coordinates()
-    @graph = build_graph(@coordinates)
+    @board = build_board(@coordinates)
   end
 
   def create_coordinates()
@@ -19,7 +19,7 @@ class Chess
     return coordinates
   end
 
-  def build_graph(coordinates)
+  def build_board(coordinates)
     mapped_connections = []
     coordinates.each do |coordinate|
       mapped_connections.push(Space.new(coordinate))
@@ -27,23 +27,39 @@ class Chess
     return mapped_connections
   end
 
-  def generate_pieces(player)
-    rook1 = Rook.new
-    space = @graph.detect { |space| space.coordinate == [1,1] } if player.color == 'black'
-    space = @graph.detect { |space| space.coordinate == [1,8] } if player.color == 'white'
-    space.chess_piece = rook1
-  
-  end
-
   def player_select(num)
     puts "\nPlayer #{num}, please type your name..."
     name = gets.chomp
-    return Player.new(name, "black", @graph) if num == "1"
-    return Player.new(name, "white", @graph) if num == "2"
+    return Player.new(name, "black", @board) if num == "1"
+    return Player.new(name, "white", @board) if num == "2"
   end
 
-  def round()
+  def round(player)
+    space = select_piece(player)
+    move = select_move(player, space)
+  end
 
+  def select_piece(player)
+    puts "\nChoose which piece you'd like to move:"
+    loop do
+      response = gets.chomp.split
+      requested_space = @board.detect { |space| space.coordinate == response }
+      if requested_space.chess_piece != nil
+        if requested_space.chess_piece.color == player.color
+          return requested_space.chess_piece
+        else
+          puts "That's not your piece!"
+        end
+      else
+        puts "There's no piece there!"
+      end
+    end
+  end
+
+  def select_move(player, space)
+    single_moves = space.chess_piece.single_moves
+    legal_moves = space.chess_piece.get_legal_moves(single_moves)
+    possible_moves = space.chess_piece.get_possible_moves(legal_moves, @board)
   end
 
 end
@@ -98,16 +114,38 @@ end
 
 module ChessPiece
 
-  def get_possible_moves()
-    possible_moves = []
-    @single_moves.each do |move|
-      new_x = @coordinate[0] + move[0]
-      new_y = @coordinate[1] + move[1]
-      unless new_x < 0 || new_x > 7 || new_y < 0 || new_y > 7 || 
-        possible_moves.push([new_x, new_y])
+  def get_legal_moves(single_moves)
+    legal_moves = []
+    directions = single_moves.each_slice(8).to_a
+    directions.each do |direction|
+      directional_moves = []
+      direction.each do |move|
+        new_x = @position[0] + move[0]
+        new_y = @position[1] + move[1]
+        if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
+          if move == direction[0]
+            break #because there is no valid move in this direction
+          end
+        else
+          directional_moves.push([new_x, new_y]) #because it is a valid move in this direction
+        end
+        legal_moves.push(directional_moves) if move == direction[-1]
       end
     end
-    return possible_moves
+    return legal_moves
+  end
+
+  def get_possible_moves(legal_moves, board)
+    legal_moves.each do |direction|
+      direction.each_with_index do |move, index|
+        space = board.detect { |space| space.coordinate == move }
+        if space.chess_piece != nil
+          direction.slice!(index, direction[index..-1].length)
+          break
+        end
+      end
+    end
+    return legal_moves.flatten(1)
   end
 
 end
@@ -135,11 +173,18 @@ class Bishop
     @color = color
     @single_moves = [
     [1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],
-    [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8]
-    [-1,-1],[-2,-2],[-3,-3],[-4,-4],[-5,-5],[-6,-6],[-7,-7],[-8,-8]
+    [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8],
+    [-1,-1],[-2,-2],[-3,-3],[-4,-4],[-5,-5],[-6,-6],[-7,-7],[-8,-8],
     [1,-1],[2,-2],[3,-3],[4,-4],[5,-5],[6,-6],[7,-7],[8,-8]
     ]
   end
+
+  def get_possible_moves()
+    possible_moves = []
+    legal_moves = get_legal_moves()
+    #
+  end
+
 
 end
 
@@ -152,8 +197,8 @@ class Rook
     @color = color
     @single_moves = [
     [0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],
-    [1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
-    [-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0],[-8,0]
+    [1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],
+    [-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0],[-8,0],
     [0,-1],[0,-2],[0,-3],[0,-4],[0,-5],[0,-6],[0,-7],[0,-8]
     ]
   end
@@ -181,12 +226,12 @@ class Queen
     @color = color
     @single_moves = [
     [1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],
-    [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8]
-    [-1,-1],[-2,-2],[-3,-3],[-4,-4],[-5,-5],[-6,-6],[-7,-7],[-8,-8]
-    [1,-1],[2,-2],[3,-3],[4,-4],[5,-5],[6,-6],[7,-7],[8,-8]
+    [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8],
+    [-1,-1],[-2,-2],[-3,-3],[-4,-4],[-5,-5],[-6,-6],[-7,-7],[-8,-8],
+    [1,-1],[2,-2],[3,-3],[4,-4],[5,-5],[6,-6],[7,-7],[8,-8],
     [0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],
-    [1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0]
-    [-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0],[-8,0]
+    [1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],
+    [-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0],[-8,0],
     [0,-1],[0,-2],[0,-3],[0,-4],[0,-5],[0,-6],[0,-7],[0,-8]
     ]
   end
@@ -207,6 +252,8 @@ class King
 
 end
 
+=begin
+
 game = Chess.new()
 player1 = player_select('1')
 player2 = player_select('2')
@@ -218,6 +265,8 @@ loop do
   game.round(player2)
     break if player1.remaining_pieces.length == 0
 end
+
+=end
 
 
 
