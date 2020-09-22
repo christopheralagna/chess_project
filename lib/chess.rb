@@ -30,17 +30,18 @@ class Chess
   def player_select(num)
     puts "\nPlayer #{num}, please type your name..."
     name = gets.chomp
-    return Player.new(name, "black", @board) if num == "1"
-    return Player.new(name, "white", @board) if num == "2"
+    return Player.new(name, "black") if num == "1"
+    return Player.new(name, "white") if num == "2"
   end
 
   def round(player, opponent)
-    until move != nil
+    puts display_board(@board)
+    new_position = nil
+    until new_position != nil
       original_position = select_piece(player)
       new_position = select_new_position(player, original_position)
     end
     new_board = update_board(new_position, original_position, opponent)
-    puts display_board(new_board)
   end
 
   def select_piece(player)
@@ -48,7 +49,7 @@ class Chess
     loop do
       response = gets.chomp.split('').map { |string| string.to_i }
       requested_space = @board.detect { |space| space.coordinate == response }
-      if requested_space.chess_piece != nil
+      if requested_space.chess_piece.name != 'blank'
         if requested_space.chess_piece.color == player.color
           return requested_space
         else
@@ -67,14 +68,13 @@ class Chess
       legal_moves = original_position.chess_piece.get_legal_moves_dir(single_moves)
       possible_moves = original_position.chess_piece.get_possible_moves_dir(legal_moves, @board, player)
     elsif piece == 'knight' || piece == 'king' || piece == 'pawn'
-      legal_moves = original_position.chess_piece.get_legal_moves_nondir(single_moves)
       if piece == 'pawn'
-        possible_moves = original_position.chess_piece.get_possible_moves_pawn(legal_moves, @board, player)
+        possible_moves = original_position.chess_piece.get_possible_moves_pawn(single_moves, @board, player)
       else
+        legal_moves = original_position.chess_piece.get_legal_moves_nondir(single_moves)
         possible_moves = original_position.chess_piece.get_possible_moves_nondir(legal_moves, @board, player)
       end
     end
-    binding.pry
     puts "\nChoose one of the following spaces to move this piece:"
     possible_moves.each { |space| puts "\t#{space}" }
     puts "\n\t\tOr type 'back' if you'd like to choose another piece to move"
@@ -92,11 +92,26 @@ class Chess
   end
 
   def update_board(new_position, original_position, opponent)
-    opponent.remaining_pieces -= 1 if new_position.chess_piece != nil
+    opponent.remaining_pieces -= 1 if new_position.chess_piece.name != 'blank'
     new_position.chess_piece = original_position.chess_piece
     new_position.chess_piece.position = new_position.coordinate
-    original_position.chess_piece = nil
+    original_position.chess_piece = Blank.new
     return @board
+  end
+
+  def display_board(board)
+    "
+      _ _ _ _ _ _ _ _
+    8 |#{board[7].chess_piece.symbol}|#{board[15].chess_piece.symbol}|#{board[23].chess_piece.symbol}|#{board[31].chess_piece.symbol}|#{board[39].chess_piece.symbol}|#{board[47].chess_piece.symbol}|#{board[55].chess_piece.symbol}|#{board[63].chess_piece.symbol}|
+    7 |#{board[6].chess_piece.symbol}|#{board[14].chess_piece.symbol}|#{board[22].chess_piece.symbol}|#{board[30].chess_piece.symbol}|#{board[38].chess_piece.symbol}|#{board[46].chess_piece.symbol}|#{board[54].chess_piece.symbol}|#{board[62].chess_piece.symbol}|
+    6 |#{board[5].chess_piece.symbol}|#{board[13].chess_piece.symbol}|#{board[21].chess_piece.symbol}|#{board[29].chess_piece.symbol}|#{board[37].chess_piece.symbol}|#{board[45].chess_piece.symbol}|#{board[53].chess_piece.symbol}|#{board[61].chess_piece.symbol}|
+    5 |#{board[4].chess_piece.symbol}|#{board[12].chess_piece.symbol}|#{board[20].chess_piece.symbol}|#{board[28].chess_piece.symbol}|#{board[36].chess_piece.symbol}|#{board[44].chess_piece.symbol}|#{board[52].chess_piece.symbol}|#{board[60].chess_piece.symbol}|
+    4 |#{board[3].chess_piece.symbol}|#{board[11].chess_piece.symbol}|#{board[19].chess_piece.symbol}|#{board[27].chess_piece.symbol}|#{board[35].chess_piece.symbol}|#{board[43].chess_piece.symbol}|#{board[51].chess_piece.symbol}|#{board[59].chess_piece.symbol}|
+    3 |#{board[2].chess_piece.symbol}|#{board[10].chess_piece.symbol}|#{board[18].chess_piece.symbol}|#{board[26].chess_piece.symbol}|#{board[34].chess_piece.symbol}|#{board[42].chess_piece.symbol}|#{board[50].chess_piece.symbol}|#{board[58].chess_piece.symbol}|
+    2 |#{board[1].chess_piece.symbol}|#{board[9].chess_piece.symbol}|#{board[17].chess_piece.symbol}|#{board[25].chess_piece.symbol}|#{board[33].chess_piece.symbol}|#{board[41].chess_piece.symbol}|#{board[49].chess_piece.symbol}|#{board[57].chess_piece.symbol}|
+    1 |#{board[0].chess_piece.symbol}|#{board[8].chess_piece.symbol}|#{board[16].chess_piece.symbol}|#{board[24].chess_piece.symbol}|#{board[32].chess_piece.symbol}|#{board[40].chess_piece.symbol}|#{board[48].chess_piece.symbol}|#{board[56].chess_piece.symbol}|
+      A B C D E F G H
+    "  
   end
 
 end
@@ -111,29 +126,29 @@ class Space
 
   def generate_piece(coordinate)
     
-    return Rook.new(coordinate, 'black') if coordinate == [1,1]
-    return Rook.new(coordinate, 'white') if coordinate == [1,8]
-    return Knight.new(coordinate, 'black') if coordinate == [2,1]
-    return Knight.new(coordinate, 'white') if coordinate == [2,8]
-    return Bishop.new(coordinate, 'black') if coordinate == [3,1]
-    return Bishop.new(coordinate, 'white') if coordinate == [3,8]
-    return King.new(coordinate, 'black') if coordinate == [4,1]
-    return King.new(coordinate, 'white') if coordinate == [4,8]
-    return Queen.new(coordinate, 'black') if coordinate == [5,1]
-    return Queen.new(coordinate, 'white') if coordinate == [5,8]
-    return Bishop.new(coordinate, 'black') if coordinate == [6,1]
-    return Bishop.new(coordinate, 'white') if coordinate == [6,8]
-    return Knight.new(coordinate, 'black') if coordinate == [7,1]
-    return Knight.new(coordinate, 'white') if coordinate == [7,8]
-    return Rook.new(coordinate, 'black') if coordinate == [8,1]
-    return Rook.new(coordinate, 'white') if coordinate == [8,8]
+    return Rook.new(coordinate, 'black', '♖') if coordinate == [1,1]
+    return Rook.new(coordinate, 'white', '♜') if coordinate == [1,8]
+    return Knight.new(coordinate, 'black', '♘') if coordinate == [2,1]
+    return Knight.new(coordinate, 'white', '♞') if coordinate == [2,8]
+    return Bishop.new(coordinate, 'black', '♗') if coordinate == [3,1]
+    return Bishop.new(coordinate, 'white', '♝') if coordinate == [3,8]
+    return King.new(coordinate, 'black', '♕') if coordinate == [4,1]
+    return King.new(coordinate, 'white', '♛') if coordinate == [4,8]
+    return Queen.new(coordinate, 'black', '♔') if coordinate == [5,1]
+    return Queen.new(coordinate, 'white', '♚') if coordinate == [5,8]
+    return Bishop.new(coordinate, 'black', '♗') if coordinate == [6,1]
+    return Bishop.new(coordinate, 'white', '♝') if coordinate == [6,8]
+    return Knight.new(coordinate, 'black', '♘') if coordinate == [7,1]
+    return Knight.new(coordinate, 'white', '♞') if coordinate == [7,8]
+    return Rook.new(coordinate, 'black', '♖') if coordinate == [8,1]
+    return Rook.new(coordinate, 'white', '♜') if coordinate == [8,8]
 
     for i in 1..8
-      return Pawn.new(coordinate, 'black') if coordinate == [i,2]
-      return Pawn.new(coordinate, 'white') if coordinate == [i,7]
+      return Pawn.new(coordinate, 'black', '♙') if coordinate == [i,2]
+      return Pawn.new(coordinate, 'white', '♟') if coordinate == [i,7]
     end
 
-    return nil
+    return Blank.new
   
   end
 end
@@ -175,7 +190,7 @@ module ChessPiece
     single_moves.each do |move|
       new_x = @position[0] + move[0]
       new_y = @position[1] + move[1]
-      break if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
+      next if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
       legal_moves.push([new_x, new_y])
     end
     return legal_moves
@@ -185,7 +200,7 @@ module ChessPiece
     legal_moves.each do |direction|
       direction.each_with_index do |move, index|
         space = board.detect { |space| space.coordinate == move }
-        if space.chess_piece != nil
+        if space.chess_piece.name != 'blank'
           if space.chess_piece.color != player.color #if the piece is an enemy piece
             direction.slice!(index+1, direction[index+1..-1].length) #add it to the list of possible moves
             break
@@ -204,37 +219,67 @@ module ChessPiece
       space = board.detect { |space| space.coordinate == move }
       if space.chess_piece != nil && space.chess_piece.color == player.color
         legal_moves.delete_at(index) #add it to the list of possible moves
-        break
+        next
       end
     end
     return legal_moves
   end
 
-  def get_possible_moves_pawn(legal_moves, board, player)
+  def get_possible_moves_pawn(single_moves, board, player)
+
+    legal_moves = []
+
+    possible_moves = []
+    single_moves.each do |move|
+      new_x = @position[0] + move[0]
+      new_y = @position[1] + move[1]
+      legal_moves.push([new_x, new_y])
+      next if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
+      possible_moves.push([new_x, new_y])
+    end
+
     left_move = legal_moves[0]
     forward_move = legal_moves[1]
     right_move = legal_moves[2]
 
-    left_capture_space = board.detect { |space| space.coordinate == legal_moves[0] }
-    forward_space = board.detect { |space| space.coordinate == legal_moves[1] }
-    right_capture_space = board.detect { |space| space.coordinate == legal_moves[2] }
+    if possible_moves.include?(left_move)
+      left_capture_space = board.detect { |space| space.coordinate == left_move }
+      possible_moves.delete(left_move) if left_capture_space.chess_piece.name == 'blank'
+    end
 
-    legal_moves.delete(left_move) if left_capture_space.chess_piece == nil
-    legal_moves.delete(forward_move) if forward_space.chess_piece != nil
-    legal_moves.delete(right_move) if right_capture_space.chess_piece == nil
+    if possible_moves.include?(forward_move)
+      forward_space = board.detect { |space| space.coordinate == forward_move }
+      possible_moves.delete(forward_move) if forward_space.chess_piece.name != 'blank'
+    end
+    
+    if possible_moves.include?(right_move)
+      right_capture_space = board.detect { |space| space.coordinate == right_move }
+      possible_moves.delete(right_move) if right_capture_space.chess_piece.name == 'blank'
+    end
 
-    return legal_moves
+    return possible_moves
+  end
+
+end
+
+class Blank
+  attr_accessor :symbol, :name
+
+  def initialize()
+    @symbol = " "
+    @name = 'blank'
   end
 
 end
 
 class Knight
   include ChessPiece
-  attr_accessor :position, :color, :single_moves, :name
+  attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color)
+  def initialize(position, color, symbol)
     @position = position
     @color = color
+    @symbol = symbol
     @single_moves = [
     [1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]
     ]
@@ -245,11 +290,12 @@ end
 
 class Bishop
   include ChessPiece
-  attr_accessor :position, :color, :single_moves, :name
+  attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color)
+  def initialize(position, color, symbol)
     @position = position
     @color = color
+    @symbol = symbol
     @single_moves = [
     [1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],
     [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8],
@@ -270,11 +316,12 @@ end
 
 class Rook
   include ChessPiece
-  attr_accessor :position, :color, :single_moves, :name
+  attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color)
+  def initialize(position, color, symbol)
     @position = position
     @color = color
+    @symbol = symbol
     @single_moves = [
     [0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],
     [1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],
@@ -288,11 +335,12 @@ end
 
 class Pawn
   include ChessPiece
-  attr_accessor :position, :color, :single_moves, :name
+  attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color)
+  def initialize(position, color, symbol)
     @position = position
     @color = color
+    @symbol = symbol
     @single_moves = [[-1,1],[0,1],[1,1]]
     @name = 'pawn'
   end
@@ -301,11 +349,12 @@ end
 
 class Queen
   include ChessPiece
-  attr_accessor :position, :color, :single_moves, :name
+  attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color)
+  def initialize(position, color, symbol)
     @position = position
     @color = color
+    @symbol = symbol
     @single_moves = [
     [1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],
     [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8],
@@ -323,11 +372,12 @@ end
 
 class King
   include ChessPiece
-  attr_accessor :position, :color, :single_moves, :name
+  attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color)
+  def initialize(position, color, symbol)
     @position = position
     @color = color
+    @symbol = symbol
     @single_moves = [
     [1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1],[0,1]
     ]
@@ -336,19 +386,15 @@ class King
 
 end
 
-=begin
-
 game = Chess.new()
-player1 = player_select('1')
-player2 = player_select('2')
+player1 = game.player_select('1')
+player2 = game.player_select('2')
 loop do
   game.round(player1, player2)
-    break if player2.remaining_pieces.length == 0
+    break if player2.remaining_pieces == 0
   game.round(player2, player1)
-    break if player1.remaining_pieces.length == 0
+    break if player1.remaining_pieces == 0
 end
-
-=end
 
 
 
