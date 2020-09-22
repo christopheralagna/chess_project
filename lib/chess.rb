@@ -66,10 +66,15 @@ class Chess
     if piece == 'rook' || piece == 'bishop' || piece == 'queen'
       legal_moves = original_position.chess_piece.get_legal_moves_dir(single_moves)
       possible_moves = original_position.chess_piece.get_possible_moves_dir(legal_moves, @board, player)
-    elsif piece == 'knight' || piece == 'king'
+    elsif piece == 'knight' || piece == 'king' || piece == 'pawn'
       legal_moves = original_position.chess_piece.get_legal_moves_nondir(single_moves)
-      possible_moves = original_position.chess_piece.get_possible_moves_nondir(legal_moves, @board, player)
+      if piece == 'pawn'
+        possible_moves = original_position.chess_piece.get_possible_moves_pawn(legal_moves, @board, player)
+      else
+        possible_moves = original_position.chess_piece.get_possible_moves_nondir(legal_moves, @board, player)
+      end
     end
+    binding.pry
     puts "\nChoose one of the following spaces to move this piece:"
     possible_moves.each { |space| puts "\t#{space}" }
     puts "\n\t\tOr type 'back' if you'd like to choose another piece to move"
@@ -205,6 +210,22 @@ module ChessPiece
     return legal_moves
   end
 
+  def get_possible_moves_pawn(legal_moves, board, player)
+    left_move = legal_moves[0]
+    forward_move = legal_moves[1]
+    right_move = legal_moves[2]
+
+    left_capture_space = board.detect { |space| space.coordinate == legal_moves[0] }
+    forward_space = board.detect { |space| space.coordinate == legal_moves[1] }
+    right_capture_space = board.detect { |space| space.coordinate == legal_moves[2] }
+
+    legal_moves.delete(left_move) if left_capture_space.chess_piece == nil
+    legal_moves.delete(forward_move) if forward_space.chess_piece != nil
+    legal_moves.delete(right_move) if right_capture_space.chess_piece == nil
+
+    return legal_moves
+  end
+
 end
 
 class Knight
@@ -272,7 +293,7 @@ class Pawn
   def initialize(position, color)
     @position = position
     @color = color
-    @single_moves = [0,1]
+    @single_moves = [[-1,1],[0,1],[1,1]]
     @name = 'pawn'
   end
 

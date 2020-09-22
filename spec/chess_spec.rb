@@ -69,6 +69,18 @@ describe Chess do
       new_position = chess.board.detect { |space| space.coordinate == [2,7] }
       expect(chess.select_new_position(player1,original_position)).to eql(new_position)
     end
+
+    it "returns the new position selected for pawn: start(3,5) end(4,6)" do
+      chess = Chess.new
+      player1 = Player.new('name', 'black')
+      pawn = Pawn.new([3,5], "black")
+      original_position = chess.board.detect { |space| space.coordinate == [3,5] }
+      original_position.chess_piece = pawn
+      enemy_position = chess.board.detect { |space| space.coordinate == [4,6] }
+      enemy_position.chess_piece = Knight.new([4,6], "white")
+      new_position = chess.board.detect { |space| space.coordinate == [4,6] }
+      expect(chess.select_new_position(player1,original_position)).to eql(new_position)
+    end
   end
 
   describe "#update_board" do
@@ -91,6 +103,19 @@ describe Chess do
       original_position = chess.board.detect { |space| space.coordinate == [1,5] }
       original_position.chess_piece = knight
       new_position = chess.board.detect { |space| space.coordinate == [2,7] }
+      expect(chess.update_board(new_position,original_position,player2)).to eql(chess.board)
+    end
+
+    it "returns the new board with enemy replaced by move (pawn)" do
+      chess = Chess.new
+      player1 = Player.new('name', 'black')
+      player2 = Player.new('name', 'white')
+      pawn = Pawn.new([3,5], "black")
+      original_position = chess.board.detect { |space| space.coordinate == [3,5] }
+      original_position.chess_piece = pawn
+      enemy_position = chess.board.detect { |space| space.coordinate == [4,6] }
+      enemy_position.chess_piece = Knight.new([4,6], "white")
+      new_position = chess.board.detect { |space| space.coordinate == [4,6] }
       expect(chess.update_board(new_position,original_position,player2)).to eql(chess.board)
     end
   end
