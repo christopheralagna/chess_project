@@ -34,9 +34,13 @@ class Chess
     return Player.new(name, "white", @board) if num == "2"
   end
 
-  def round(player)
-    space = select_piece(player)
-    move = select_move(player, space)
+  def round(player, opponent)
+    until move != nil
+      original_position = select_piece(player)
+      new_position = select_new_position(player, original_position)
+    end
+    new_board = update_board(new_position, original_position, opponent)
+    puts display_board(new_board)
   end
 
   def select_piece(player)
@@ -56,10 +60,33 @@ class Chess
     end
   end
 
-  def select_move(player, space)
-    single_moves = space.chess_piece.single_moves
-    legal_moves = space.chess_piece.get_legal_moves(single_moves)
-    possible_moves = space.chess_piece.get_possible_moves(legal_moves, @board)
+  def select_new_position(player, original_position)
+    single_moves = original_position.chess_piece.single_moves
+    legal_moves = original_position.chess_piece.get_legal_moves(single_moves)
+    possible_moves = original_position.chess_piece.get_possible_moves(legal_moves, @board, player)
+    puts "\nChoose one of the following spaces to move this piece:"
+    possible_moves.each { |space| puts "\t#{space}" }
+    puts "\n\t\tOr type 'back' if you'd like to choose another piece to move"
+    response = gets.chomp
+    return nil if response.downcase == 'back'
+    response = response.split('').map { |string| string.to_i }
+    until possible_moves.any? { |space| space == response } do
+      puts "\nPlease enter a valid space:"
+      response = gets.chomp
+      return nil if response.downcase == 'back'
+      response = response.split('').map { |string| string.to_i }
+    end
+    new_position = @board.detect { |space| space.coordinate == response }
+    return new_position
+  end
+
+  def update_board(new_position, original_position, opponent)
+    opponent.remaining_pieces -= 1 if new_position.chess_piece != nil
+    new_position.chess_piece = original_position.chess_piece
+    new_position.chess_piece.position = new_position.coordinate
+    original_position.chess_piece = nil
+    binding.pry
+    return @board
   end
 
 end
@@ -135,13 +162,18 @@ module ChessPiece
     return legal_moves
   end
 
-  def get_possible_moves(legal_moves, board)
+  def get_possible_moves(legal_moves, board, player)
     legal_moves.each do |direction|
       direction.each_with_index do |move, index|
         space = board.detect { |space| space.coordinate == move }
         if space.chess_piece != nil
-          direction.slice!(index, direction[index..-1].length)
-          break
+          if space.chess_piece.color != player.color #if the piece is an enemy piece
+            direction.slice!(index+1, direction[index+1..-1].length) #add it to the list of possible moves
+            break
+          else
+            direction.slice!(index, direction[index..-1].length)
+            break
+          end
         end
       end
     end
@@ -260,9 +292,9 @@ player2 = player_select('2')
 game.generate_pieces(player1)
 game.generate_pieces(player2)
 loop do
-  game.round(player1)
+  game.round(player1, player2)
     break if player2.remaining_pieces.length == 0
-  game.round(player2)
+  game.round(player2, player1)
     break if player1.remaining_pieces.length == 0
 end
 
