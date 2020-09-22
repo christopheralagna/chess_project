@@ -24,7 +24,7 @@ describe Rook do
   end
 
   describe "#get_possible_moves" do
-    it "returns limited legal moves when another piece is in the way of a particular direction, AND includes moves where opponent pieces reside" do
+    xit "returns limited legal moves when another piece is in the way of a particular direction, AND includes moves where opponent pieces reside" do
       chess = Chess.new
       player = Player.new('name', 'black')
       space = chess.board.detect { |space| space.coordinate == [1,3] }
@@ -50,19 +50,29 @@ describe Chess do
   end
 
   describe "#select_new_position" do
-    xit "returns the new position selected if a valid position in possible_moves: [1,6]" do
+    xit "returns the new position selected for rook(directional piece): start(1,3) end(1,7)" do
       chess = Chess.new
       player1 = Player.new('name', 'black')
       rook = Rook.new([1,3], "black")
       original_position = chess.board.detect { |space| space.coordinate == [1,3] }
       original_position.chess_piece = rook
-      new_position = chess.board.detect { |space| space.coordinate == [1,6] }
+      new_position = chess.board.detect { |space| space.coordinate == [1,7] }
+      expect(chess.select_new_position(player1,original_position)).to eql(new_position)
+    end
+
+    xit "returns the new position selected for knight(non-directional piece): start(1,5) end(2,7)" do
+      chess = Chess.new
+      player1 = Player.new('name', 'black')
+      knight = Knight.new([1,5], "black")
+      original_position = chess.board.detect { |space| space.coordinate == [1,5] }
+      original_position.chess_piece = knight
+      new_position = chess.board.detect { |space| space.coordinate == [2,7] }
       expect(chess.select_new_position(player1,original_position)).to eql(new_position)
     end
   end
 
   describe "#update_board" do
-    it "returns the new board with enemy replaced by move" do
+    xit "returns the new board with enemy replaced by move (directional piece)" do
       chess = Chess.new
       player1 = Player.new('name', 'black')
       player2 = Player.new('name', 'white')
@@ -70,6 +80,17 @@ describe Chess do
       original_position = chess.board.detect { |space| space.coordinate == [1,3] }
       original_position.chess_piece = rook
       new_position = chess.board.detect { |space| space.coordinate == [1,7] }
+      expect(chess.update_board(new_position,original_position,player2)).to eql(chess.board)
+    end
+
+    xit "returns the new board with enemy replaced by move (non-directional piece)" do
+      chess = Chess.new
+      player1 = Player.new('name', 'black')
+      player2 = Player.new('name', 'white')
+      knight = Knight.new([1,5], "black")
+      original_position = chess.board.detect { |space| space.coordinate == [1,5] }
+      original_position.chess_piece = knight
+      new_position = chess.board.detect { |space| space.coordinate == [2,7] }
       expect(chess.update_board(new_position,original_position,player2)).to eql(chess.board)
     end
   end

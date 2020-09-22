@@ -61,9 +61,15 @@ class Chess
   end
 
   def select_new_position(player, original_position)
+    piece = original_position.chess_piece.name
     single_moves = original_position.chess_piece.single_moves
-    legal_moves = original_position.chess_piece.get_legal_moves(single_moves)
-    possible_moves = original_position.chess_piece.get_possible_moves(legal_moves, @board, player)
+    if piece == 'rook' || piece == 'bishop' || piece == 'queen'
+      legal_moves = original_position.chess_piece.get_legal_moves_dir(single_moves)
+      possible_moves = original_position.chess_piece.get_possible_moves_dir(legal_moves, @board, player)
+    elsif piece == 'knight' || piece == 'king'
+      legal_moves = original_position.chess_piece.get_legal_moves_nondir(single_moves)
+      possible_moves = original_position.chess_piece.get_possible_moves_nondir(legal_moves, @board, player)
+    end
     puts "\nChoose one of the following spaces to move this piece:"
     possible_moves.each { |space| puts "\t#{space}" }
     puts "\n\t\tOr type 'back' if you'd like to choose another piece to move"
@@ -85,7 +91,6 @@ class Chess
     new_position.chess_piece = original_position.chess_piece
     new_position.chess_piece.position = new_position.coordinate
     original_position.chess_piece = nil
-    binding.pry
     return @board
   end
 
@@ -141,7 +146,7 @@ end
 
 module ChessPiece
 
-  def get_legal_moves(single_moves)
+  def get_legal_moves_dir(single_moves) #used for directional pieces (rook, bishop, queen)
     legal_moves = []
     directions = single_moves.each_slice(8).to_a
     directions.each do |direction|
@@ -150,9 +155,7 @@ module ChessPiece
         new_x = @position[0] + move[0]
         new_y = @position[1] + move[1]
         if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
-          if move == direction[0]
-            break #because there is no valid move in this direction
-          end
+          break if move == direction[0] #because there is no valid move in this direction 
         else
           directional_moves.push([new_x, new_y]) #because it is a valid move in this direction
         end
@@ -162,7 +165,18 @@ module ChessPiece
     return legal_moves
   end
 
-  def get_possible_moves(legal_moves, board, player)
+  def get_legal_moves_nondir(single_moves) #used for non-directional advanced pieces (knight, king)
+    legal_moves = []
+    single_moves.each do |move|
+      new_x = @position[0] + move[0]
+      new_y = @position[1] + move[1]
+      break if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
+      legal_moves.push([new_x, new_y])
+    end
+    return legal_moves
+  end
+
+  def get_possible_moves_dir(legal_moves, board, player)
     legal_moves.each do |direction|
       direction.each_with_index do |move, index|
         space = board.detect { |space| space.coordinate == move }
@@ -180,11 +194,22 @@ module ChessPiece
     return legal_moves.flatten(1)
   end
 
+  def get_possible_moves_nondir(legal_moves, board, player)
+    legal_moves.each_with_index do |move, index|
+      space = board.detect { |space| space.coordinate == move }
+      if space.chess_piece != nil && space.chess_piece.color == player.color
+        legal_moves.delete_at(index) #add it to the list of possible moves
+        break
+      end
+    end
+    return legal_moves
+  end
+
 end
 
 class Knight
   include ChessPiece
-  attr_accessor :position, :color, :single_moves
+  attr_accessor :position, :color, :single_moves, :name
 
   def initialize(position, color)
     @position = position
@@ -192,13 +217,14 @@ class Knight
     @single_moves = [
     [1,2],[2,1],[2,-1],[1,-2],[-1,-2],[-2,-1],[-2,1],[-1,2]
     ]
+    @name = 'knight'
   end
 
 end
 
 class Bishop
   include ChessPiece
-  attr_accessor :position, :color, :single_moves
+  attr_accessor :position, :color, :single_moves, :name
 
   def initialize(position, color)
     @position = position
@@ -209,6 +235,7 @@ class Bishop
     [-1,-1],[-2,-2],[-3,-3],[-4,-4],[-5,-5],[-6,-6],[-7,-7],[-8,-8],
     [1,-1],[2,-2],[3,-3],[4,-4],[5,-5],[6,-6],[7,-7],[8,-8]
     ]
+    @name = 'bishop'
   end
 
   def get_possible_moves()
@@ -222,7 +249,7 @@ end
 
 class Rook
   include ChessPiece
-  attr_accessor :position, :color, :single_moves
+  attr_accessor :position, :color, :single_moves, :name
 
   def initialize(position, color)
     @position = position
@@ -233,25 +260,27 @@ class Rook
     [-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0],[-8,0],
     [0,-1],[0,-2],[0,-3],[0,-4],[0,-5],[0,-6],[0,-7],[0,-8]
     ]
+    @name = 'rook'
   end
 
 end
 
 class Pawn
   include ChessPiece
-  attr_accessor :position, :color, :single_moves
+  attr_accessor :position, :color, :single_moves, :name
 
   def initialize(position, color)
     @position = position
     @color = color
     @single_moves = [0,1]
+    @name = 'pawn'
   end
 
 end
 
 class Queen
   include ChessPiece
-  attr_accessor :position, :color, :single_moves
+  attr_accessor :position, :color, :single_moves, :name
 
   def initialize(position, color)
     @position = position
@@ -266,13 +295,14 @@ class Queen
     [-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0],[-8,0],
     [0,-1],[0,-2],[0,-3],[0,-4],[0,-5],[0,-6],[0,-7],[0,-8]
     ]
+    @name = 'queen'
   end
 
 end
 
 class King
   include ChessPiece
-  attr_accessor :position, :color, :single_moves
+  attr_accessor :position, :color, :single_moves, :name
 
   def initialize(position, color)
     @position = position
@@ -280,6 +310,7 @@ class King
     @single_moves = [
     [1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1],[0,1]
     ]
+    @name = 'king'
   end
 
 end
@@ -289,8 +320,6 @@ end
 game = Chess.new()
 player1 = player_select('1')
 player2 = player_select('2')
-game.generate_pieces(player1)
-game.generate_pieces(player2)
 loop do
   game.round(player1, player2)
     break if player2.remaining_pieces.length == 0
