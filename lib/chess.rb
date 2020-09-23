@@ -1,6 +1,8 @@
 
 require 'pry'
 
+#need to allow for reverse calculation for possible moves for player 2
+
 class Chess
   attr_accessor :coordinates, :board
 
@@ -65,13 +67,13 @@ class Chess
     piece = original_position.chess_piece.name
     single_moves = original_position.chess_piece.single_moves
     if piece == 'rook' || piece == 'bishop' || piece == 'queen'
-      legal_moves = original_position.chess_piece.get_legal_moves_dir(single_moves)
+      legal_moves = original_position.chess_piece.get_legal_moves_dir(single_moves, player)
       possible_moves = original_position.chess_piece.get_possible_moves_dir(legal_moves, @board, player)
     elsif piece == 'knight' || piece == 'king' || piece == 'pawn'
       if piece == 'pawn'
         possible_moves = original_position.chess_piece.get_possible_moves_pawn(single_moves, @board, player)
       else
-        legal_moves = original_position.chess_piece.get_legal_moves_nondir(single_moves)
+        legal_moves = original_position.chess_piece.get_legal_moves_nondir(single_moves, player)
         possible_moves = original_position.chess_piece.get_possible_moves_nondir(legal_moves, @board, player)
       end
     end
@@ -166,14 +168,18 @@ end
 
 module ChessPiece
 
-  def get_legal_moves_dir(single_moves) #used for directional pieces (rook, bishop, queen)
+  def get_legal_moves_dir(single_moves, player) #used for directional pieces (rook, bishop, queen)
     legal_moves = []
     directions = single_moves.each_slice(8).to_a
     directions.each do |direction|
       directional_moves = []
       direction.each do |move|
         new_x = @position[0] + move[0]
-        new_y = @position[1] + move[1]
+        if player.color == 'black'
+          new_y = @position[1] + move[1]
+        elsif player.color == 'white'
+          new_y = @position[1] - move[1]
+        end
         if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
           break if move == direction[0] #because there is no valid move in this direction 
         else
@@ -185,11 +191,15 @@ module ChessPiece
     return legal_moves
   end
 
-  def get_legal_moves_nondir(single_moves) #used for non-directional advanced pieces (knight, king)
+  def get_legal_moves_nondir(single_moves, player) #used for non-directional advanced pieces (knight, king)
     legal_moves = []
     single_moves.each do |move|
       new_x = @position[0] + move[0]
-      new_y = @position[1] + move[1]
+      if player.color == 'black'
+        new_y = @position[1] + move[1]
+      elsif player.color == 'white'
+        new_y = @position[1] - move[1]
+      end
       next if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
       legal_moves.push([new_x, new_y])
     end
@@ -201,7 +211,7 @@ module ChessPiece
       direction.each_with_index do |move, index|
         space = board.detect { |space| space.coordinate == move }
         if space.chess_piece.name != 'blank'
-          if space.chess_piece.color != player.color #if the piece is an enemy piece
+          if space.chess_piece.color != player.color && space.chess_piece.color != 'none'  #if the piece is an enemy piece
             direction.slice!(index+1, direction[index+1..-1].length) #add it to the list of possible moves
             break
           else
@@ -215,24 +225,28 @@ module ChessPiece
   end
 
   def get_possible_moves_nondir(legal_moves, board, player)
-    legal_moves.each_with_index do |move, index|
+    possible_moves = []
+    legal_moves.each do |move|
       space = board.detect { |space| space.coordinate == move }
-      if space.chess_piece != nil && space.chess_piece.color == player.color
-        legal_moves.delete_at(index) #add it to the list of possible moves
-        next
+      if space.chess_piece.color != player.color #!!space.chess_piece != nil &&
+        possible_moves.push(move) #add it to the list of possible moves
       end
     end
-    return legal_moves
+    return possible_moves
   end
 
   def get_possible_moves_pawn(single_moves, board, player)
 
     legal_moves = []
-
     possible_moves = []
+
     single_moves.each do |move|
       new_x = @position[0] + move[0]
-      new_y = @position[1] + move[1]
+      if player.color == 'black'
+        new_y = @position[1] + move[1]
+      elsif player.color == 'white'
+        new_y = @position[1] - move[1]
+      end
       legal_moves.push([new_x, new_y])
       next if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
       possible_moves.push([new_x, new_y])
@@ -263,11 +277,12 @@ module ChessPiece
 end
 
 class Blank
-  attr_accessor :symbol, :name
+  attr_accessor :symbol, :name, :color
 
   def initialize()
     @symbol = " "
     @name = 'blank'
+    @color = 'none'
   end
 
 end
