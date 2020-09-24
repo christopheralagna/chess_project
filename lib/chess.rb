@@ -1,8 +1,6 @@
 
 require 'pry'
 
-#need to allow for reverse calculation for possible moves for player 2
-
 class Chess
   attr_accessor :coordinates, :board
 
@@ -41,13 +39,15 @@ class Chess
     new_position = nil
     until new_position != nil
       original_position = select_piece(player)
-      new_position = select_new_position(player, original_position)
+      possible_moves = get_possible_moves(player, original_position)
+      new_position = select_new_position(possible_moves)
     end
     new_board = update_board(new_position, original_position, opponent)
   end
 
   def select_piece(player)
-    puts "\nChoose which piece you'd like to move:"
+    puts "\nSelect a space using 'xy' coordinates: inputs like '11', '12','45','78', etc..."
+    puts "\n#{player.name}, choose which piece you'd like to move:\n\n"
     loop do
       response = gets.chomp.split('').map { |string| string.to_i }
       requested_space = @board.detect { |space| space.coordinate == response }
@@ -63,7 +63,7 @@ class Chess
     end
   end
 
-  def select_new_position(player, original_position)
+  def get_possible_moves(player, original_position)
     piece = original_position.chess_piece.name
     single_moves = original_position.chess_piece.single_moves
     if piece == 'rook' || piece == 'bishop' || piece == 'queen'
@@ -77,6 +77,9 @@ class Chess
         possible_moves = original_position.chess_piece.get_possible_moves_nondir(legal_moves, @board, player)
       end
     end
+  end
+
+  def select_new_position(possible_moves)
     puts "\nChoose one of the following spaces to move this piece:"
     possible_moves.each { |space| puts "\t#{space}" }
     puts "\n\t\tOr type 'back' if you'd like to choose another piece to move"
@@ -104,15 +107,15 @@ class Chess
   def display_board(board)
     "
       _ _ _ _ _ _ _ _
-    8 |#{board[7].chess_piece.symbol}|#{board[15].chess_piece.symbol}|#{board[23].chess_piece.symbol}|#{board[31].chess_piece.symbol}|#{board[39].chess_piece.symbol}|#{board[47].chess_piece.symbol}|#{board[55].chess_piece.symbol}|#{board[63].chess_piece.symbol}|
-    7 |#{board[6].chess_piece.symbol}|#{board[14].chess_piece.symbol}|#{board[22].chess_piece.symbol}|#{board[30].chess_piece.symbol}|#{board[38].chess_piece.symbol}|#{board[46].chess_piece.symbol}|#{board[54].chess_piece.symbol}|#{board[62].chess_piece.symbol}|
-    6 |#{board[5].chess_piece.symbol}|#{board[13].chess_piece.symbol}|#{board[21].chess_piece.symbol}|#{board[29].chess_piece.symbol}|#{board[37].chess_piece.symbol}|#{board[45].chess_piece.symbol}|#{board[53].chess_piece.symbol}|#{board[61].chess_piece.symbol}|
-    5 |#{board[4].chess_piece.symbol}|#{board[12].chess_piece.symbol}|#{board[20].chess_piece.symbol}|#{board[28].chess_piece.symbol}|#{board[36].chess_piece.symbol}|#{board[44].chess_piece.symbol}|#{board[52].chess_piece.symbol}|#{board[60].chess_piece.symbol}|
-    4 |#{board[3].chess_piece.symbol}|#{board[11].chess_piece.symbol}|#{board[19].chess_piece.symbol}|#{board[27].chess_piece.symbol}|#{board[35].chess_piece.symbol}|#{board[43].chess_piece.symbol}|#{board[51].chess_piece.symbol}|#{board[59].chess_piece.symbol}|
-    3 |#{board[2].chess_piece.symbol}|#{board[10].chess_piece.symbol}|#{board[18].chess_piece.symbol}|#{board[26].chess_piece.symbol}|#{board[34].chess_piece.symbol}|#{board[42].chess_piece.symbol}|#{board[50].chess_piece.symbol}|#{board[58].chess_piece.symbol}|
-    2 |#{board[1].chess_piece.symbol}|#{board[9].chess_piece.symbol}|#{board[17].chess_piece.symbol}|#{board[25].chess_piece.symbol}|#{board[33].chess_piece.symbol}|#{board[41].chess_piece.symbol}|#{board[49].chess_piece.symbol}|#{board[57].chess_piece.symbol}|
-    1 |#{board[0].chess_piece.symbol}|#{board[8].chess_piece.symbol}|#{board[16].chess_piece.symbol}|#{board[24].chess_piece.symbol}|#{board[32].chess_piece.symbol}|#{board[40].chess_piece.symbol}|#{board[48].chess_piece.symbol}|#{board[56].chess_piece.symbol}|
-      A B C D E F G H
+    8|#{board[7].chess_piece.symbol}|#{board[15].chess_piece.symbol}|#{board[23].chess_piece.symbol}|#{board[31].chess_piece.symbol}|#{board[39].chess_piece.symbol}|#{board[47].chess_piece.symbol}|#{board[55].chess_piece.symbol}|#{board[63].chess_piece.symbol}|
+    7|#{board[6].chess_piece.symbol}|#{board[14].chess_piece.symbol}|#{board[22].chess_piece.symbol}|#{board[30].chess_piece.symbol}|#{board[38].chess_piece.symbol}|#{board[46].chess_piece.symbol}|#{board[54].chess_piece.symbol}|#{board[62].chess_piece.symbol}|
+    6|#{board[5].chess_piece.symbol}|#{board[13].chess_piece.symbol}|#{board[21].chess_piece.symbol}|#{board[29].chess_piece.symbol}|#{board[37].chess_piece.symbol}|#{board[45].chess_piece.symbol}|#{board[53].chess_piece.symbol}|#{board[61].chess_piece.symbol}|
+    5|#{board[4].chess_piece.symbol}|#{board[12].chess_piece.symbol}|#{board[20].chess_piece.symbol}|#{board[28].chess_piece.symbol}|#{board[36].chess_piece.symbol}|#{board[44].chess_piece.symbol}|#{board[52].chess_piece.symbol}|#{board[60].chess_piece.symbol}|
+    4|#{board[3].chess_piece.symbol}|#{board[11].chess_piece.symbol}|#{board[19].chess_piece.symbol}|#{board[27].chess_piece.symbol}|#{board[35].chess_piece.symbol}|#{board[43].chess_piece.symbol}|#{board[51].chess_piece.symbol}|#{board[59].chess_piece.symbol}|
+    3|#{board[2].chess_piece.symbol}|#{board[10].chess_piece.symbol}|#{board[18].chess_piece.symbol}|#{board[26].chess_piece.symbol}|#{board[34].chess_piece.symbol}|#{board[42].chess_piece.symbol}|#{board[50].chess_piece.symbol}|#{board[58].chess_piece.symbol}|
+    2|#{board[1].chess_piece.symbol}|#{board[9].chess_piece.symbol}|#{board[17].chess_piece.symbol}|#{board[25].chess_piece.symbol}|#{board[33].chess_piece.symbol}|#{board[41].chess_piece.symbol}|#{board[49].chess_piece.symbol}|#{board[57].chess_piece.symbol}|
+    1|#{board[0].chess_piece.symbol}|#{board[8].chess_piece.symbol}|#{board[16].chess_piece.symbol}|#{board[24].chess_piece.symbol}|#{board[32].chess_piece.symbol}|#{board[40].chess_piece.symbol}|#{board[48].chess_piece.symbol}|#{board[56].chess_piece.symbol}|
+      1 2 3 4 5 6 7 8
     "  
   end
 
@@ -235,45 +238,6 @@ module ChessPiece
     return possible_moves
   end
 
-  def get_possible_moves_pawn(single_moves, board, player)
-
-    legal_moves = []
-    possible_moves = []
-
-    single_moves.each do |move|
-      new_x = @position[0] + move[0]
-      if player.color == 'black'
-        new_y = @position[1] + move[1]
-      elsif player.color == 'white'
-        new_y = @position[1] - move[1]
-      end
-      legal_moves.push([new_x, new_y])
-      next if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
-      possible_moves.push([new_x, new_y])
-    end
-
-    left_move = legal_moves[0]
-    forward_move = legal_moves[1]
-    right_move = legal_moves[2]
-
-    if possible_moves.include?(left_move)
-      left_capture_space = board.detect { |space| space.coordinate == left_move }
-      possible_moves.delete(left_move) if left_capture_space.chess_piece.name == 'blank'
-    end
-
-    if possible_moves.include?(forward_move)
-      forward_space = board.detect { |space| space.coordinate == forward_move }
-      possible_moves.delete(forward_move) if forward_space.chess_piece.name != 'blank'
-    end
-    
-    if possible_moves.include?(right_move)
-      right_capture_space = board.detect { |space| space.coordinate == right_move }
-      possible_moves.delete(right_move) if right_capture_space.chess_piece.name == 'blank'
-    end
-
-    return possible_moves
-  end
-
 end
 
 class Blank
@@ -360,6 +324,46 @@ class Pawn
     @name = 'pawn'
   end
 
+  def get_possible_moves_pawn(single_moves, board, player)
+
+    legal_moves = []
+    possible_moves = []
+
+    single_moves.each do |move|
+      new_x = @position[0] + move[0]
+      if player.color == 'black'
+        new_y = @position[1] + move[1]
+      elsif player.color == 'white'
+        new_y = @position[1] - move[1]
+      end
+      legal_moves.push([new_x, new_y])
+      next if new_x < 1 || new_x > 8 || new_y < 1 || new_y > 8
+      possible_moves.push([new_x, new_y])
+    end
+
+    left_move = legal_moves[0]
+    forward_move = legal_moves[1]
+    right_move = legal_moves[2]
+
+    if possible_moves.include?(left_move)
+      left_capture_space = board.detect { |space| space.coordinate == left_move }
+      possible_moves.delete(left_move) if left_capture_space.chess_piece.name == 'blank'
+    end
+
+    if possible_moves.include?(forward_move)
+      forward_space = board.detect { |space| space.coordinate == forward_move }
+      possible_moves.delete(forward_move) if forward_space.chess_piece.name != 'blank'
+    end
+    
+    if possible_moves.include?(right_move)
+      right_capture_space = board.detect { |space| space.coordinate == right_move }
+      possible_moves.delete(right_move) if right_capture_space.chess_piece.name == 'blank'
+    end
+
+    return possible_moves
+
+  end
+
 end
 
 class Queen
@@ -410,50 +414,3 @@ loop do
   game.round(player2, player1)
     break if player1.remaining_pieces == 0
 end
-
-
-
-
-
-
-
-
-"
-   _ _ _ _ _ _ _ _
-8 |♜|♞|♝|♛|♚|♝|♞|♜|
-7 |♟|♟|♟|♟|♟|♟|♟|♟|
-6 |_|_|_|_|_|_|_|_|
-5 |_|_|_|_|_|_|_|_|
-4 |_|_|_|_|_|_|_|_|
-3 |_|_|_|_|_|_|_|_|
-2 |♙|♙|♙|♙|♙|♙|♙|♙|
-1 |♖|♘|♗|♕|♔|♗|♘|♖|
-   A B C D E F G H
-"  
-
-"
-   _ _ _ _ _ _ _ _
-8 |#{}|#{}|#{}|#{}|#{}|#{}|#{}|#{}|
-7 |#{}|#{}|#{}|#{}|#{}|#{}|#{}|#{}|
-6 |#{}|#{}|#{}|#{}|#{}|#{}|#{}|#{}|
-5 |#{}|#{}|#{}|#{}|#{}|#{}|#{}|#{}|
-4 |#{}|#{}|#{}|#{}|#{}|#{}|#{}|#{}|
-3 |#{}|#{}|#{}|#{}|#{}|#{}|#{}|#{}|
-2 |#{}|#{}|#{}|#{}|#{}|#{}|#{}|#{}|
-1 |#{}|#{}|#{}|#{}|#{}|#{}|#{}|#{}|
-   A B C D E F G H
-"  
-
-"
-nil -> _
-"
-
-
-
-
-
-
-
-
-
-
