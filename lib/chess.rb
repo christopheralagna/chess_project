@@ -43,7 +43,7 @@ class Chess
       new_position = select_new_position(possible_moves)
     end
     @board = update_board(new_position, original_position, opponent)
-    return player
+    return true if opponent.remaining_pieces == 0
   end
 
   def select_piece(player)
@@ -124,8 +124,17 @@ class Chess
     "  
   end
 
-  def display_winner()
-
+  def display_winner(player)
+    puts "\nCongratulations #{player.name}: You Win!"
+    sleep(3)
+    puts "\nWould you like to play again?\n"
+    response = gets.chomp
+    until response == 'yes' || response == 'no'
+      puts "\ntype 'yes' or 'no'\n"
+      response = gets.chomp
+    end
+    return false if response == 'no'
+    return true if response == 'yes'
   end
 
 end
@@ -168,12 +177,13 @@ class Space
 end
 
 class Player
-  attr_accessor :remaining_pieces, :name, :color
+  attr_accessor :remaining_pieces, :name, :color, :wins
 
   def initialize(name, color)
     @name = name
     @color = color
     @remaining_pieces = 16
+    @wins = false
   end
 
 end
@@ -414,15 +424,19 @@ class King
 
 end
 
-game = Chess.new()
-player1 = game.player_select('1')
-player2 = game.player_select('2')
-player2.remaining_pieces = 1
-loop do
-  player = game.round(player1, player2)
-    break if player2.remaining_pieces == 0
-  player = game.round(player2, player1)
-    break if player1.remaining_pieces == 0
+new_game = true
+while new_game == true
+  game = Chess.new()
+  player1 = game.player_select('1')
+  player2 = game.player_select('2')
+  player2.remaining_pieces = 1
+  loop do
+    player1.wins = game.round(player1, player2)
+      break if player1.wins == true
+    player2.wins = game.round(player2, player1)
+      break if player2.wins == true
+  end
+  new_game = game.display_winner(player1) if player1.wins
+  new_game = game.display_winner(player2) if player2.wins
+  puts "\nThanks for playing!\n\n" if new_game == false
 end
-binding.pry
-game.display_winner(player)
