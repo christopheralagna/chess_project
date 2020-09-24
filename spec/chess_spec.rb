@@ -119,4 +119,6 @@ describe Chess do
       expect(chess.update_board(new_position,original_position,player2)).to eql(chess.board)
     end
   end
+
+  describe 
 end

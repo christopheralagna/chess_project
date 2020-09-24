@@ -42,7 +42,8 @@ class Chess
       possible_moves = get_possible_moves(player, original_position)
       new_position = select_new_position(possible_moves)
     end
-    new_board = update_board(new_position, original_position, opponent)
+    @board = update_board(new_position, original_position, opponent)
+    return player
   end
 
   def select_piece(player)
@@ -50,6 +51,10 @@ class Chess
     puts "\n#{player.name}, choose which piece you'd like to move:\n\n"
     loop do
       response = gets.chomp.split('').map { |string| string.to_i }
+      until @board.any? { |space| space.coordinate == response } do
+        puts "please enter a valid space."
+        response = gets.chomp.split('').map { |string| string.to_i }
+      end
       requested_space = @board.detect { |space| space.coordinate == response }
       if requested_space.chess_piece.name != 'blank'
         if requested_space.chess_piece.color == player.color
@@ -117,6 +122,10 @@ class Chess
     1|#{board[0].chess_piece.symbol}|#{board[8].chess_piece.symbol}|#{board[16].chess_piece.symbol}|#{board[24].chess_piece.symbol}|#{board[32].chess_piece.symbol}|#{board[40].chess_piece.symbol}|#{board[48].chess_piece.symbol}|#{board[56].chess_piece.symbol}|
       1 2 3 4 5 6 7 8
     "  
+  end
+
+  def display_winner()
+
   end
 
 end
@@ -408,9 +417,12 @@ end
 game = Chess.new()
 player1 = game.player_select('1')
 player2 = game.player_select('2')
+player2.remaining_pieces = 1
 loop do
-  game.round(player1, player2)
+  player = game.round(player1, player2)
     break if player2.remaining_pieces == 0
-  game.round(player2, player1)
+  player = game.round(player2, player1)
     break if player1.remaining_pieces == 0
 end
+binding.pry
+game.display_winner(player)
