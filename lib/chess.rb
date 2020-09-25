@@ -1,12 +1,13 @@
 
 require 'pry'
+require 'json'
 
 class Chess
   attr_accessor :coordinates, :board
 
-  def initialize()
-    @coordinates = create_coordinates()
-    @board = build_board(@coordinates)
+  def initialize(coordinates = create_coordinates(), board = build_board(coordinates))
+    @coordinates = coordinates
+    @board = board
   end
 
   def create_coordinates()
@@ -30,15 +31,15 @@ class Chess
   def player_select(num)
     puts "\nPlayer #{num}, please type your name..."
     name = gets.chomp
-    return Player.new(name, "black") if num == "1"
-    return Player.new(name, "white") if num == "2"
+    return Player.new(name, "black", true) if num == "1"
+    return Player.new(name, "white", false) if num == "2"
   end
 
   def round(player, opponent)
     puts display_board(@board)
     new_position = nil
     until new_position != nil
-      original_position = select_piece(player)
+      original_position = select_piece(player, opponent)
       possible_moves = get_possible_moves(player, original_position)
       new_position = select_new_position(possible_moves)
     end
@@ -46,14 +47,19 @@ class Chess
     return true if opponent.remaining_pieces == 0
   end
 
-  def select_piece(player)
+  def select_piece(player, opponent)
     puts "\nSelect a space using 'xy' coordinates: inputs like '11', '12','45','78', etc..."
-    puts "\n#{player.name}, choose which piece you'd like to move:\n\n"
+    puts "\n#{player.name}, choose which piece you'd like to move:"
+    puts "\t\tOr type 'save' if you'd like to return to your game another time."
     loop do
-      response = gets.chomp.split('').map { |string| string.to_i }
+      response = gets.chomp
+      save_game(player, opponent) if response == 'save'
+      response = response.split('').map { |string| string.to_i }
       until @board.any? { |space| space.coordinate == response } do
         puts "please enter a valid space."
-        response = gets.chomp.split('').map { |string| string.to_i }
+        response = gets.chomp
+        save_game(player, opponent) if response == 'save'
+        response = response.split('').map { |string| string.to_i }
       end
       requested_space = @board.detect { |space| space.coordinate == response }
       if requested_space.chess_piece.name != 'blank'
@@ -137,14 +143,105 @@ class Chess
     return true if response == 'yes'
   end
 
+  def request_load_game?(player1, player2)
+    puts "\n\nWelcome to Chess, #{player1.name} and #{player2.name}!"
+    sleep(1)
+    puts "\nEnter 'new' if you would like to start a new game."
+    puts "Enter 'load' if you would like to load an previous game."
+    response = gets.chomp
+    until response == 'new' || response == 'load'
+      puts "\nPlease enter a valid response."
+      response = gets.chomp
+    end
+    return true if response == 'load'
+    return false if response == 'new'
+  end
+
+  def self.load()
+    string = File.open('save.txt', 'r').readlines.join('')
+    data = JSON.load(string)
+
+    board = []
+    data[0]['board'].each do |space|
+      coordinate = space[0]
+      if space[1] == 'blank'
+        chess_piece = Blank.new
+      else
+        if space[4] == 'knight'
+          chess_piece = Knight.new(space[1], space[2], space[3])
+        elsif space[4] == 'rook'
+          chess_piece = Rook.new(space[1], space[2], space[3])
+        elsif space[4] == 'bishop'
+          chess_piece = Bishop.new(space[1], space[2], space[3])
+        elsif space[4] == 'pawn'
+          chess_piece = Pawn.new(space[1], space[2], space[3])
+        elsif space[4] == 'king'
+          chess_piece = King.new(space[1], space[2], space[3])
+        elsif space[4] == 'queen'
+          chess_piece = Queen.new(space[1], space[2], space[3])
+        end
+      end
+      board.push(Space.new(coordinate, chess_piece))
+    end
+
+    resumed_game = self.new(data[0]['coordinates'], board)
+    resumed_player1 = Player.new(data[1]['name'], data[1]['color'], data[1]['turn'], data[1]['remaining_pieces'], data[1]['wins'])
+    resumed_player2 = Player.new(data[2]['name'], data[2]['color'], data[2]['turn'], data[2]['remaining_pieces'], data[2]['wins'])
+    save_data = [resumed_game, resumed_player1, resumed_player2]
+    return save_data
+  end
+
+  def save_game(player, opponent)
+    board_data = []
+    @board.each do |space| 
+      data = []
+      data.push(space.coordinate)
+      if space.chess_piece.name == 'blank'
+        data.push('blank')
+      else
+        data.push(space.chess_piece.position)
+        data.push(space.chess_piece.color)
+        data.push(space.chess_piece.symbol)
+        data.push(space.chess_piece.name)
+      end
+      board_data.push(data)
+    end
+
+    string = JSON.dump(
+      [
+        {
+          :coordinates => @coordinates,
+          :board => board_data
+        },
+        {
+          :name => player.name,
+          :color => player.color,
+          :turn => player.turn,
+          :remaining_pieces => player.remaining_pieces,
+          :wins => player.wins
+        },
+        {
+          :name => opponent.name,
+          :color => opponent.color,
+          :turn => opponent.turn,
+          :remaining_pieces => opponent.remaining_pieces,
+          :wins => opponent.wins
+        }
+      ])
+
+    File.write('save.txt', string)
+    puts "\n\nThanks for now!\n\n"
+    exit
+  end
+
 end
 
 class Space
   attr_accessor :coordinate, :chess_piece
 
-  def initialize(coordinate)
+  def initialize(coordinate, chess_piece = generate_piece(coordinate))
     @coordinate = coordinate
-    @chess_piece = generate_piece(coordinate)
+    @chess_piece = chess_piece
   end
 
   def generate_piece(coordinate)
@@ -177,13 +274,14 @@ class Space
 end
 
 class Player
-  attr_accessor :remaining_pieces, :name, :color, :wins
+  attr_accessor :name, :color, :turn, :remaining_pieces, :wins
 
-  def initialize(name, color)
+  def initialize(name, color, turn, remaining_pieces = 16, wins = false)
     @name = name
     @color = color
-    @remaining_pieces = 16
-    @wins = false
+    @turn = turn
+    @remaining_pieces = remaining_pieces
+    @wins = wins
   end
 
 end
@@ -290,25 +388,18 @@ class Bishop
   include ChessPiece
   attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color, symbol)
+  def initialize(position, color, symbol, name = 'bishop')
     @position = position
     @color = color
     @symbol = symbol
+    @name = name
     @single_moves = [
     [1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],
     [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8],
     [-1,-1],[-2,-2],[-3,-3],[-4,-4],[-5,-5],[-6,-6],[-7,-7],[-8,-8],
     [1,-1],[2,-2],[3,-3],[4,-4],[5,-5],[6,-6],[7,-7],[8,-8]
     ]
-    @name = 'bishop'
   end
-
-  def get_possible_moves()
-    possible_moves = []
-    legal_moves = get_legal_moves()
-    #
-  end
-
 
 end
 
@@ -316,17 +407,17 @@ class Rook
   include ChessPiece
   attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color, symbol)
+  def initialize(position, color, symbol, name = 'rook')
     @position = position
     @color = color
     @symbol = symbol
+    @name = name
     @single_moves = [
     [0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7],[0,8],
     [1,0],[2,0],[3,0],[4,0],[5,0],[6,0],[7,0],[8,0],
     [-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0],[-8,0],
     [0,-1],[0,-2],[0,-3],[0,-4],[0,-5],[0,-6],[0,-7],[0,-8]
     ]
-    @name = 'rook'
   end
 
 end
@@ -335,12 +426,12 @@ class Pawn
   include ChessPiece
   attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color, symbol)
+  def initialize(position, color, symbol, name = 'pawn')
     @position = position
     @color = color
     @symbol = symbol
+    @name = name
     @single_moves = [[-1,1],[0,1],[1,1]]
-    @name = 'pawn'
   end
 
   def get_possible_moves_pawn(single_moves, board, player)
@@ -389,10 +480,11 @@ class Queen
   include ChessPiece
   attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color, symbol)
+  def initialize(position, color, symbol, name = 'queen')
     @position = position
     @color = color
     @symbol = symbol
+    @name = name
     @single_moves = [
     [1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],
     [-1,1],[-2,2],[-3,3],[-4,4],[-5,5],[-6,6],[-7,7],[-8,8],
@@ -403,7 +495,6 @@ class Queen
     [-1,0],[-2,0],[-3,0],[-4,0],[-5,0],[-6,0],[-7,0],[-8,0],
     [0,-1],[0,-2],[0,-3],[0,-4],[0,-5],[0,-6],[0,-7],[0,-8]
     ]
-    @name = 'queen'
   end
 
 end
@@ -412,14 +503,14 @@ class King
   include ChessPiece
   attr_accessor :position, :color, :symbol, :single_moves, :name
 
-  def initialize(position, color, symbol)
+  def initialize(position, color, symbol, name = 'king')
     @position = position
     @color = color
     @symbol = symbol
+    @name = name
     @single_moves = [
     [1,1],[1,0],[1,-1],[0,-1],[-1,-1],[-1,0],[-1,1],[0,1]
     ]
-    @name = 'king'
   end
 
 end
@@ -429,12 +520,31 @@ while new_game == true
   game = Chess.new()
   player1 = game.player_select('1')
   player2 = game.player_select('2')
-  player2.remaining_pieces = 1
+  load_request = game.request_load_game?(player1, player2)
+  if load_request == true
+    save_data = Chess.load
+    game = save_data[0]
+    if save_data[1].turn
+      player1 = save_data[2]
+      player2 = save_data[1]
+    elsif save_data[2].turn
+      player1 = save_data[1]
+      player2 = save_data[2]
+    end
+  end
   loop do
-    player1.wins = game.round(player1, player2)
+    if player1.turn
+      player1.wins = game.round(player1, player2)
+      player2.turn = true
+      player1.turn = false
       break if player1.wins == true
-    player2.wins = game.round(player2, player1)
+    end
+    if player2.turn
+      player2.wins = game.round(player2, player1)
+      player1.turn = true
+      player2.turn = false
       break if player2.wins == true
+    end
   end
   new_game = game.display_winner(player1) if player1.wins
   new_game = game.display_winner(player2) if player2.wins
