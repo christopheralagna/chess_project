@@ -45,6 +45,7 @@ class Chess
     end
     @board = update_board(new_position, original_position, opponent)
     return true if opponent.remaining_pieces == 0
+    return false if opponent.remaining_pieces != 0
   end
 
   def select_piece(player, opponent)
@@ -157,40 +158,6 @@ class Chess
     return false if response == 'new'
   end
 
-  def self.load()
-    string = File.open('save.txt', 'r').readlines.join('')
-    data = JSON.load(string)
-
-    board = []
-    data[0]['board'].each do |space|
-      coordinate = space[0]
-      if space[1] == 'blank'
-        chess_piece = Blank.new
-      else
-        if space[4] == 'knight'
-          chess_piece = Knight.new(space[1], space[2], space[3])
-        elsif space[4] == 'rook'
-          chess_piece = Rook.new(space[1], space[2], space[3])
-        elsif space[4] == 'bishop'
-          chess_piece = Bishop.new(space[1], space[2], space[3])
-        elsif space[4] == 'pawn'
-          chess_piece = Pawn.new(space[1], space[2], space[3])
-        elsif space[4] == 'king'
-          chess_piece = King.new(space[1], space[2], space[3])
-        elsif space[4] == 'queen'
-          chess_piece = Queen.new(space[1], space[2], space[3])
-        end
-      end
-      board.push(Space.new(coordinate, chess_piece))
-    end
-
-    resumed_game = self.new(data[0]['coordinates'], board)
-    resumed_player1 = Player.new(data[1]['name'], data[1]['color'], data[1]['turn'], data[1]['remaining_pieces'], data[1]['wins'])
-    resumed_player2 = Player.new(data[2]['name'], data[2]['color'], data[2]['turn'], data[2]['remaining_pieces'], data[2]['wins'])
-    save_data = [resumed_game, resumed_player1, resumed_player2]
-    return save_data
-  end
-
   def save_game(player, opponent)
     board_data = []
     @board.each do |space| 
@@ -232,6 +199,40 @@ class Chess
     File.write('save.txt', string)
     puts "\n\nThanks for now!\n\n"
     exit
+  end
+
+  def self.load()
+    string = File.open('save.txt', 'r').readlines.join('')
+    data = JSON.load(string)
+
+    board = []
+    data[0]['board'].each do |space|
+      coordinate = space[0]
+      if space[1] == 'blank'
+        chess_piece = Blank.new
+      else
+        if space[4] == 'knight'
+          chess_piece = Knight.new(space[1], space[2], space[3])
+        elsif space[4] == 'rook'
+          chess_piece = Rook.new(space[1], space[2], space[3])
+        elsif space[4] == 'bishop'
+          chess_piece = Bishop.new(space[1], space[2], space[3])
+        elsif space[4] == 'pawn'
+          chess_piece = Pawn.new(space[1], space[2], space[3])
+        elsif space[4] == 'king'
+          chess_piece = King.new(space[1], space[2], space[3])
+        elsif space[4] == 'queen'
+          chess_piece = Queen.new(space[1], space[2], space[3])
+        end
+      end
+      board.push(Space.new(coordinate, chess_piece))
+    end
+
+    resumed_game = self.new(data[0]['coordinates'], board)
+    resumed_player1 = Player.new(data[1]['name'], data[1]['color'], data[1]['turn'], data[1]['remaining_pieces'], data[1]['wins'])
+    resumed_player2 = Player.new(data[2]['name'], data[2]['color'], data[2]['turn'], data[2]['remaining_pieces'], data[2]['wins'])
+    save_data = [resumed_game, resumed_player1, resumed_player2]
+    return save_data
   end
 
 end
@@ -348,8 +349,8 @@ module ChessPiece
     possible_moves = []
     legal_moves.each do |move|
       space = board.detect { |space| space.coordinate == move }
-      if space.chess_piece.color != player.color #!!space.chess_piece != nil &&
-        possible_moves.push(move) #add it to the list of possible moves
+      if space.chess_piece.color != player.color
+        possible_moves.push(move)
       end
     end
     return possible_moves
@@ -516,20 +517,20 @@ class King
 end
 
 new_game = true
-while new_game == true
+while new_game
   game = Chess.new()
   player1 = game.player_select('1')
   player2 = game.player_select('2')
   load_request = game.request_load_game?(player1, player2)
-  if load_request == true
+  if load_request
     save_data = Chess.load
     game = save_data[0]
-    if save_data[1].turn
-      player1 = save_data[2]
-      player2 = save_data[1]
-    elsif save_data[2].turn
+    if save_data[1].color == 'black'
       player1 = save_data[1]
       player2 = save_data[2]
+    elsif save_data[1].color == 'white'
+      player1 = save_data[2]
+      player2 = save_data[1]
     end
   end
   loop do
